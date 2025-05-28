@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  # Servicio Frontend (React con Chart.js)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      - REACT_APP_API_URL=http://localhost:4000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  # Servicio API (Backend principal)
+  api:
+    build: ./api
+    ports:
+      - "4000:4000"
+    depends_on:
+      - price-service
+      - prediction-service
+      - db
+    environment:
+      - PORT=4000
+      - PRICE_SERVICE_URL=http://price-service:4001
+      - PREDICTION_SERVICE_URL=http://prediction-service:4002
+      - MONGODB_URI=mongodb://db:27017/crypto-dashboard
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+
+  # Servicio de precios (obtiene datos de criptomonedas)
+  price-service:
+    build: ./price-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+    volumes:
+      - ./price-service:/app
+      - /app/node_modules
+
+  # Servicio de predicción básica
+  prediction-service:
+    build: ./prediction-service
+    ports:
+      - "4002:4002"
+    depends_on:
+      - price-service
+    environment:
+      - PORT=4002
+      - PRICE_SERVICE_URL=http://price-service:4001
+    volumes:
+      - ./prediction-service:/app
+      - /app/node_modules
+
+  # Base de datos MongoDB
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data: 

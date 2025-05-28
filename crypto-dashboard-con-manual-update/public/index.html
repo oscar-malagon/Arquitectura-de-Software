@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Docker vs VM</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    .panel {
+      flex: 1;
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    h2 {
+      color: #2c3e50;
+      margin-top: 0;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    input {
+      padding: 10px;
+      width: 70%;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .add-form {
+      display: flex;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+    .add-button {
+      background-color: #3498db;
+      padding: 10px 15px;
+    }
+    .system-info {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .info-item {
+      margin-bottom: 8px;
+    }
+    .info-label {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Demo Docker: Lista de Tareas</h1>
+  
+  <div class="container">
+    <div class="panel">
+      <h2>Tareas</h2>
+      <div class="add-form">
+        <input type="text" id="new-todo" placeholder="Nueva tarea...">
+        <button class="add-button" onclick="addTodo()">Añadir</button>
+      </div>
+      <ul id="todos-list"></ul>
+    </div>
+    
+    <div class="panel">
+      <h2>Información del Sistema</h2>
+      <div id="system-info" class="system-info"></div>
+    </div>
+  </div>
+
+  <script>
+    // Cargar tareas
+    async function loadTodos() {
+      const response = await fetch('/api/todos');
+      const todos = await response.json();
+      const todosList = document.getElementById('todos-list');
+      todosList.innerHTML = '';
+      
+      todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.textContent = todo.text;
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Eliminar';
+        deleteButton.onclick = () => deleteTodo(todo.id);
+        
+        li.appendChild(deleteButton);
+        todosList.appendChild(li);
+      });
+    }
+    
+    // Añadir tarea
+    async function addTodo() {
+      const input = document.getElementById('new-todo');
+      const text = input.value.trim();
+      
+      if (text) {
+        await fetch('/api/todos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text })
+        });
+        
+        input.value = '';
+        loadTodos();
+      }
+    }
+    
+    // Eliminar tarea
+    async function deleteTodo(id) {
+      await fetch(`/api/todos/${id}`, {
+        method: 'DELETE'
+      });
+      loadTodos();
+    }
+    
+    // Cargar información del sistema
+    async function loadSystemInfo() {
+      const response = await fetch('/api/system-info');
+      const info = await response.json();
+      const container = document.getElementById('system-info');
+      
+      container.innerHTML = Object.entries(info)
+        .map(([key, value]) => 
+          `<div class="info-item">
+            <span class="info-label">${formatKey(key)}:</span> ${value}
+          </div>`
+        )
+        .join('');
+    }
+    
+    function formatKey(key) {
+      return key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase())
+        .replace(/([a-z])([A-Z])/g, '$1 $2');
+    }
+    
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTodos();
+      loadSystemInfo();
+      
+      // Auto-actualizar la información del sistema cada 5 segundos
+      setInterval(loadSystemInfo, 5000);
+      
+      // Enter key para añadir tareas
+      document.getElementById('new-todo').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          addTodo();
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

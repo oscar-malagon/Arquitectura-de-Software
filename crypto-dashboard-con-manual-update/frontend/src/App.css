@@ -1,0 +1,552 @@
+/* Estilos generales */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #f4f7fa;
+  color: #333;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Encabezado */
+.App-header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 1rem 2rem;
+  text-align: center;
+}
+
+.App-header h1 {
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+/* Contenedor principal */
+.app-container {
+  display: flex;
+  flex: 1;
+  padding: 1rem;
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 300px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  height: fit-content;
+}
+
+/* Contenido principal */
+.main-content {
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+/* Footer */
+.App-footer {
+  background-color: #2c3e50;
+  color: white;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.container-info {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.container-info ul {
+  list-style-type: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Selector de monedas */
+.coin-selector h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.coin-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.coin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  position: relative;
+}
+
+.coin-item:hover {
+  background-color: #f5f8ff;
+}
+
+.coin-item.selected {
+  background-color: #e3efff;
+}
+
+.coin-info {
+  display: flex;
+  align-items: center;
+}
+
+.coin-symbol {
+  font-weight: bold;
+  margin-right: 0.5rem;
+  color: #3498db;
+}
+
+.coin-price-info {
+  text-align: right;
+}
+
+.coin-price {
+  display: block;
+  font-weight: bold;
+}
+
+.coin-change {
+  font-size: 0.8rem;
+}
+
+.coin-change.positive {
+  color: #2ecc71;
+}
+
+.coin-change.negative {
+  color: #e74c3c;
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #bbb;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.favorite-btn.favorited {
+  color: #f1c40f;
+}
+
+.coin-select {
+  margin-top: 1rem;
+}
+
+.coin-select select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+/* Dashboard de monedas */
+.coin-dashboard {
+  width: 100%;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dashboard-header h1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coin-price-header {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.change-indicator {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.change-indicator.positive {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #27ae60;
+}
+
+.change-indicator.negative {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #c0392b;
+}
+
+/* Dashboard content layout */
+.dashboard-content {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.chart-section {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.chart-container {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.prediction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.days-selector {
+  display: flex;
+  align-items: center;
+}
+
+.days-selector label {
+  margin-right: 0.5rem;
+}
+
+.days-selector select {
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.prediction-disclaimer {
+  margin-top: 0.5rem;
+  text-align: center;
+  color: #777;
+}
+
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.info-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #777;
+}
+
+.card-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.card-value.positive {
+  color: #2ecc71;
+}
+
+.card-value.negative {
+  color: #e74c3c;
+}
+
+.loading, .no-selection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #777;
+}
+
+.chart-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  color: #777;
+}
+
+/* Alertas */
+.alert-manager {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.alert-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.alert-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.add-alert-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.add-alert-btn:hover {
+  background-color: #2980b9;
+}
+
+.alert-form {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.coin-name {
+  font-weight: bold;
+}
+
+.create-alert-btn {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.8rem 1.5rem;
+  width: 100%;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.create-alert-btn:hover {
+  background-color: #27ae60;
+}
+
+.create-alert-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.alerts-list h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #555;
+}
+
+.no-alerts, .loading-alerts {
+  padding: 1rem;
+  text-align: center;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.alert-item.triggered {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-left: 3px solid #e74c3c;
+}
+
+.alert-item.inactive {
+  opacity: 0.6;
+}
+
+.alert-coin {
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+
+.alert-condition {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.alert-triggered {
+  margin-top: 0.5rem;
+  color: #e74c3c;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.alert-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggle-btn, .delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-btn.active {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #27ae60;
+}
+
+.toggle-btn.inactive {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #c0392b;
+}
+
+.delete-btn {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #c0392b;
+}
+
+.delete-btn:hover {
+  background-color: rgba(231, 76, 60, 0.3);
+}
+
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #c0392b;
+  padding: 0.8rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    flex-direction: column;
+  }
+  
+  .sidebar-section {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 800px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+  }
+}
+
+.refresh-button {
+  background-color: #2962ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.refresh-button:hover {
+  background-color: #1565c0;
+}
+
+.refresh-button:disabled {
+  background-color: #90caf9;
+  cursor: not-allowed;
+} 
