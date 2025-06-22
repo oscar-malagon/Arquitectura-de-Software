@@ -16,6 +16,13 @@ pipeline {
                       mountPath: /kaniko/.docker
                     - name: workspace-volume
                       mountPath: /workspace
+                    resources:
+                      requests:
+                        memory: "1Gi"
+                        cpu: "500m"
+                      limits:
+                        memory: "2Gi"
+                        cpu: "1"
                   volumes:
                   - name: docker-config
                     secret:
@@ -35,6 +42,12 @@ pipeline {
     }
     
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
         stage('Debug Workspace') {
             steps {
                 container('kaniko') {
@@ -44,7 +57,12 @@ pipeline {
                         echo "Directory contents:"
                         ls -la
                         echo "Checking Dockerfiles:"
-                        find . -name "Dockerfile"
+                        find . -name "Dockerfile" -type f
+                        echo "Checking if files are readable:"
+                        for df in $(find . -name "Dockerfile" -type f); do
+                            echo "Testing $df:"
+                            cat $df > /dev/null && echo "  ✓ Readable" || echo "  ✗ Not readable"
+                        done
                     '''
                 }
             }
@@ -54,62 +72,54 @@ pipeline {
             steps {
                 container('kaniko') {
                     script {
-                        def WORKSPACE_PATH = sh(script: 'pwd', returnStdout: true).trim()
+                        def buildImage = { service ->
+                            sh """
+                                echo "Building ${service}..."
+                                /kaniko/executor \\
+                                --context=\$(pwd)/${service} \\
+                                --dockerfile=\$(pwd)/${service}/Dockerfile \\
+                                --destination=\${DOCKER_REGISTRY}/${service}:\${VERSION} \\
+                                --destination=\${DOCKER_REGISTRY}/${service}:latest \\
+                                --verbosity=debug \\
+                                --cache=true \\
+                                --cache-ttl=24h \\
+                                --snapshot-mode=redo \\
+                                --use-new-run \\
+                                --cleanup
+                            """
+                        }
                         
-                        // Build and push frontend
-                        sh """
-                            echo "Building frontend..."
-                            /kaniko/executor \\
-                            --context=${WORKSPACE_PATH} \\
-                            --dockerfile=${WORKSPACE_PATH}/frontend/Dockerfile \\
-                            --destination=\${DOCKER_REGISTRY}/frontend:\${VERSION} \\
-                            --destination=\${DOCKER_REGISTRY}/frontend:latest \\
-                            --verbosity=debug \\
-                            --cache=true \\
-                            --cleanup
-                        """
-                        
-                        // Build and push API
-                        sh """
-                            echo "Building API..."
-                            /kaniko/executor \\
-                            --context=${WORKSPACE_PATH} \\
-                            --dockerfile=${WORKSPACE_PATH}/api/Dockerfile \\
-                            --destination=\${DOCKER_REGISTRY}/api:\${VERSION} \\
-                            --destination=\${DOCKER_REGISTRY}/api:latest \\
-                            --verbosity=debug \\
-                            --cache=true \\
-                            --cleanup
-                        """
-                        
-                        // Build and push price service
-                        sh """
-                            echo "Building price service..."
-                            /kaniko/executor \\
-                            --context=${WORKSPACE_PATH} \\
-                            --dockerfile=${WORKSPACE_PATH}/price-service/Dockerfile \\
-                            --destination=\${DOCKER_REGISTRY}/price-service:\${VERSION} \\
-                            --destination=\${DOCKER_REGISTRY}/price-service:latest \\
-                            --verbosity=debug \\
-                            --cache=true \\
-                            --cleanup
-                        """
-                        
-                        // Build and push prediction service
-                        sh """
-                            echo "Building prediction service..."
-                            /kaniko/executor \\
-                            --context=${WORKSPACE_PATH} \\
-                            --dockerfile=${WORKSPACE_PATH}/prediction-service/Dockerfile \\
-                            --destination=\${DOCKER_REGISTRY}/prediction-service:\${VERSION} \\
-                            --destination=\${DOCKER_REGISTRY}/prediction-service:latest \\
-                            --verbosity=debug \\
-                            --cache=true \\
-                            --cleanup
-                        """
+                        // Build all services in parallel
+                        parallel(
+                            frontend: {
+                                buildImage('frontend')
+                            },
+                            api: {
+                                buildImage('api')
+                            },
+                            'price-service': {
+                                buildImage('price-service')
+                            },
+                            'prediction-service': {
+                                buildImage('prediction-service')
+                            }
+                        )
                     }
                 }
             }
+        }
+    }
+    
+    post {
+        failure {
+            echo 'Build failed! Check the logs above for details.'
+        }
+        success {
+            echo 'All images built and pushed successfully!'
+        }
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
         }
     }
 } 
