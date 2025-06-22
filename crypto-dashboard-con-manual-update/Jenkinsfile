@@ -7,7 +7,7 @@ pipeline {
                 spec:
                   containers:
                   - name: kaniko
-                    image: gcr.io/kaniko-project/executor:debug
+                    image: gcr.io/kaniko-project/executor:v1.9.1-debug
                     command:
                     - /busybox/cat
                     tty: true
@@ -43,8 +43,8 @@ pipeline {
                         pwd
                         echo "Directory contents:"
                         ls -la
-                        echo "Workspace contents:"
-                        ls -la $WORKSPACE || true
+                        echo "Checking Dockerfiles:"
+                        find . -name "Dockerfile"
                     '''
                 }
             }
@@ -53,49 +53,61 @@ pipeline {
         stage('Build and Push Images') {
             steps {
                 container('kaniko') {
-                    // Build and push frontend
-                    sh '''
-                        echo "Building frontend..."
-                        /kaniko/executor \
-                        --context=$WORKSPACE \
-                        --dockerfile=frontend/Dockerfile \
-                        --destination=${DOCKER_REGISTRY}/frontend:${VERSION} \
-                        --destination=${DOCKER_REGISTRY}/frontend:latest \
-                        --verbosity=debug
-                    '''
-                    
-                    // Build and push API
-                    sh '''
-                        echo "Building API..."
-                        /kaniko/executor \
-                        --context=$WORKSPACE \
-                        --dockerfile=api/Dockerfile \
-                        --destination=${DOCKER_REGISTRY}/api:${VERSION} \
-                        --destination=${DOCKER_REGISTRY}/api:latest \
-                        --verbosity=debug
-                    '''
-                    
-                    // Build and push price service
-                    sh '''
-                        echo "Building price service..."
-                        /kaniko/executor \
-                        --context=$WORKSPACE \
-                        --dockerfile=price-service/Dockerfile \
-                        --destination=${DOCKER_REGISTRY}/price-service:${VERSION} \
-                        --destination=${DOCKER_REGISTRY}/price-service:latest \
-                        --verbosity=debug
-                    '''
-                    
-                    // Build and push prediction service
-                    sh '''
-                        echo "Building prediction service..."
-                        /kaniko/executor \
-                        --context=$WORKSPACE \
-                        --dockerfile=prediction-service/Dockerfile \
-                        --destination=${DOCKER_REGISTRY}/prediction-service:${VERSION} \
-                        --destination=${DOCKER_REGISTRY}/prediction-service:latest \
-                        --verbosity=debug
-                    '''
+                    script {
+                        def WORKSPACE_PATH = sh(script: 'pwd', returnStdout: true).trim()
+                        
+                        // Build and push frontend
+                        sh """
+                            echo "Building frontend..."
+                            /kaniko/executor \\
+                            --context=${WORKSPACE_PATH} \\
+                            --dockerfile=${WORKSPACE_PATH}/frontend/Dockerfile \\
+                            --destination=\${DOCKER_REGISTRY}/frontend:\${VERSION} \\
+                            --destination=\${DOCKER_REGISTRY}/frontend:latest \\
+                            --verbosity=debug \\
+                            --cache=true \\
+                            --cleanup
+                        """
+                        
+                        // Build and push API
+                        sh """
+                            echo "Building API..."
+                            /kaniko/executor \\
+                            --context=${WORKSPACE_PATH} \\
+                            --dockerfile=${WORKSPACE_PATH}/api/Dockerfile \\
+                            --destination=\${DOCKER_REGISTRY}/api:\${VERSION} \\
+                            --destination=\${DOCKER_REGISTRY}/api:latest \\
+                            --verbosity=debug \\
+                            --cache=true \\
+                            --cleanup
+                        """
+                        
+                        // Build and push price service
+                        sh """
+                            echo "Building price service..."
+                            /kaniko/executor \\
+                            --context=${WORKSPACE_PATH} \\
+                            --dockerfile=${WORKSPACE_PATH}/price-service/Dockerfile \\
+                            --destination=\${DOCKER_REGISTRY}/price-service:\${VERSION} \\
+                            --destination=\${DOCKER_REGISTRY}/price-service:latest \\
+                            --verbosity=debug \\
+                            --cache=true \\
+                            --cleanup
+                        """
+                        
+                        // Build and push prediction service
+                        sh """
+                            echo "Building prediction service..."
+                            /kaniko/executor \\
+                            --context=${WORKSPACE_PATH} \\
+                            --dockerfile=${WORKSPACE_PATH}/prediction-service/Dockerfile \\
+                            --destination=\${DOCKER_REGISTRY}/prediction-service:\${VERSION} \\
+                            --destination=\${DOCKER_REGISTRY}/prediction-service:latest \\
+                            --verbosity=debug \\
+                            --cache=true \\
+                            --cleanup
+                        """
+                    }
                 }
             }
         }
