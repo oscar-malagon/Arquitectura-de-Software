@@ -8,9 +8,16 @@ pipeline {
     }
     
     stages {
+        stage('Setup') {
+            steps {
+                sh 'cd crypto-dashboard-con-manual-update'
+            }
+        }
+        
         stage('Test') {
             steps {
                 sh '''
+                    cd crypto-dashboard-con-manual-update
                     cd frontend && npm install && npm test
                     cd ../api && npm install && npm test
                     cd ../price-service && npm install && npm test
@@ -22,6 +29,7 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
+                    sh 'cd crypto-dashboard-con-manual-update'
                     // Build frontend
                     sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ./frontend"
                     
@@ -41,6 +49,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docr-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                     sh '''
+                        cd crypto-dashboard-con-manual-update
                         docker login registry.digitalocean.com -u $DOCKER_USER -p $DOCKER_PASSWORD
                         docker push ${DOCKER_REGISTRY}/frontend:${VERSION}
                         docker push ${DOCKER_REGISTRY}/api:${VERSION}
@@ -55,6 +64,7 @@ pipeline {
             steps {
                 script {
                     sh """
+                        cd crypto-dashboard-con-manual-update
                         yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                         yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                         yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
