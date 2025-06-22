@@ -1,0 +1,8 @@
+jenkins:
+  plugins:
+    - docker-workflow
+    - kubernetes
+    - git
+    - workflow-aggregator
+    - blueocean
+    - configuration-as-code 

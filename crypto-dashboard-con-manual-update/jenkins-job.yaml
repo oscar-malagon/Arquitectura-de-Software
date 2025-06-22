@@ -1,0 +1,25 @@
+jobs:
+  - script: >
+      pipelineJob('crypto-dashboard') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/oscar-malagon/Arquitectura-de-Software')
+                }
+                branch('*/main')
+                extensions {
+                  pathRestriction {
+                    includedRegions('crypto-dashboard-con-manual-update/.*')
+                  }
+                }
+              }
+            }
+            scriptPath('crypto-dashboard-con-manual-update/Jenkinsfile')
+          }
+        }
+        triggers {
+          scm('H/5 * * * *')
+        }
+      } 

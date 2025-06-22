@@ -1,0 +1,98 @@
+global:
+  environment: production
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: registry.digitalocean.com/crypto-dashboard/frontend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+api:
+  replicaCount: 1
+  image:
+    repository: registry.digitalocean.com/crypto-dashboard/api
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 4000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+priceService:
+  replicaCount: 1
+  image:
+    repository: registry.digitalocean.com/crypto-dashboard/price-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 4001
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+predictionService:
+  replicaCount: 1
+  image:
+    repository: registry.digitalocean.com/crypto-dashboard/prediction-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 4002
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+mongodb:
+  enabled: true
+  persistence:
+    enabled: true
+    storageClass: do-block-storage
+    size: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: crypto-dashboard.example.com  # Replace with your actual domain
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: frontend
+          servicePort: 3000
+        - path: /api
+          pathType: Prefix
+          serviceName: api
+          servicePort: 4000 
