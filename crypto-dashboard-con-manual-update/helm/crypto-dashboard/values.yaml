@@ -84,7 +84,8 @@ ingress:
   className: nginx
   annotations:
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Temporarily disable cert-manager annotation
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
     - host: crypto-dashboard.example.com  # Replace with your actual domain
       paths:

@@ -14,6 +14,15 @@ const cache = new NodeCache({ stdTTL: 120 });
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date(),
+    service: 'prediction-service'
+  });
+});
+
 // Función simple para predecir precios futuros
 function predictPrice(historicalData, days = 7) {
   try {
