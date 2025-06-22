@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:18'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
     
     environment {
         DOCKER_REGISTRY = 'registry.digitalocean.com/crypto-dashboard'
@@ -10,14 +15,21 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                sh 'cd crypto-dashboard-con-manual-update'
+                // Install Docker CLI
+                sh '''
+                    apt-get update
+                    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+                    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+                    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                    apt-get update
+                    apt-get install -y docker-ce-cli
+                '''
             }
         }
         
         stage('Test') {
             steps {
                 sh '''
-                    cd crypto-dashboard-con-manual-update
                     cd frontend && npm install && npm test
                     cd ../api && npm install && npm test
                     cd ../price-service && npm install && npm test
@@ -29,7 +41,6 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    sh 'cd crypto-dashboard-con-manual-update'
                     // Build frontend
                     sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ./frontend"
                     
@@ -49,7 +60,6 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docr-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                     sh '''
-                        cd crypto-dashboard-con-manual-update
                         docker login registry.digitalocean.com -u $DOCKER_USER -p $DOCKER_PASSWORD
                         docker push ${DOCKER_REGISTRY}/frontend:${VERSION}
                         docker push ${DOCKER_REGISTRY}/api:${VERSION}
@@ -63,8 +73,13 @@ pipeline {
         stage('Update Helm Values') {
             steps {
                 script {
+                    // Install yq
+                    sh '''
+                        curl -L https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq
+                        chmod +x /usr/local/bin/yq
+                    '''
+                    
                     sh """
-                        cd crypto-dashboard-con-manual-update
                         yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                         yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                         yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
