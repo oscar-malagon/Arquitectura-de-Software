@@ -84,10 +84,9 @@ ingress:
   className: nginx
   annotations:
     kubernetes.io/ingress.class: nginx
-    # Temporarily disable cert-manager annotation
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rewrite-target: /
   hosts:
-    - host: crypto-dashboard.example.com  # Replace with your actual domain
+    - host: ""  # Empty host to accept all traffic including direct IP access
       paths:
         - path: /
           pathType: Prefix
