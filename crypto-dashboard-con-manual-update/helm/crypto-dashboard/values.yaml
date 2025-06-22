@@ -8,7 +8,7 @@ frontend:
     tag: latest
   service:
     type: ClusterIP
-    port: 3000
+    port: 80
   resources:
     requests:
       memory: "256Mi"
@@ -91,7 +91,7 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: frontend
-          servicePort: 3000
+          servicePort: 80
         - path: /api
           pathType: Prefix
           serviceName: api
