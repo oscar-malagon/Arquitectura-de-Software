@@ -14,6 +14,8 @@ pipeline {
                     volumeMounts:
                     - name: docker-config
                       mountPath: /kaniko/.docker
+                    - name: workspace-volume
+                      mountPath: /workspace
                   volumes:
                   - name: docker-config
                     secret:
@@ -21,6 +23,8 @@ pipeline {
                       items:
                         - key: .dockerconfigjson
                           path: config.json
+                  - name: workspace-volume
+                    emptyDir: {}
             '''
         }
     }
@@ -28,7 +32,6 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'registry.digitalocean.com/crypto-dashboard'
         VERSION = "${BUILD_NUMBER}"
-        PROJECT_DIR = 'crypto-dashboard-con-manual-update'
     }
     
     stages {
@@ -36,16 +39,44 @@ pipeline {
             steps {
                 container('kaniko') {
                     // Build and push frontend
-                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/frontend --destination ${DOCKER_REGISTRY}/frontend:${VERSION} --destination ${DOCKER_REGISTRY}/frontend:latest"
+                    sh '''
+                        /kaniko/executor \
+                        --context="$WORKSPACE/frontend" \
+                        --dockerfile="$WORKSPACE/frontend/Dockerfile" \
+                        --destination=${DOCKER_REGISTRY}/frontend:${VERSION} \
+                        --destination=${DOCKER_REGISTRY}/frontend:latest \
+                        --verbosity=debug
+                    '''
                     
                     // Build and push API
-                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/api --destination ${DOCKER_REGISTRY}/api:${VERSION} --destination ${DOCKER_REGISTRY}/api:latest"
+                    sh '''
+                        /kaniko/executor \
+                        --context="$WORKSPACE/api" \
+                        --dockerfile="$WORKSPACE/api/Dockerfile" \
+                        --destination=${DOCKER_REGISTRY}/api:${VERSION} \
+                        --destination=${DOCKER_REGISTRY}/api:latest \
+                        --verbosity=debug
+                    '''
                     
                     // Build and push price service
-                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/price-service --destination ${DOCKER_REGISTRY}/price-service:${VERSION} --destination ${DOCKER_REGISTRY}/price-service:latest"
+                    sh '''
+                        /kaniko/executor \
+                        --context="$WORKSPACE/price-service" \
+                        --dockerfile="$WORKSPACE/price-service/Dockerfile" \
+                        --destination=${DOCKER_REGISTRY}/price-service:${VERSION} \
+                        --destination=${DOCKER_REGISTRY}/price-service:latest \
+                        --verbosity=debug
+                    '''
                     
                     // Build and push prediction service
-                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/prediction-service --destination ${DOCKER_REGISTRY}/prediction-service:${VERSION} --destination ${DOCKER_REGISTRY}/prediction-service:latest"
+                    sh '''
+                        /kaniko/executor \
+                        --context="$WORKSPACE/prediction-service" \
+                        --dockerfile="$WORKSPACE/prediction-service/Dockerfile" \
+                        --destination=${DOCKER_REGISTRY}/prediction-service:${VERSION} \
+                        --destination=${DOCKER_REGISTRY}/prediction-service:latest \
+                        --verbosity=debug
+                    '''
                 }
             }
         }
