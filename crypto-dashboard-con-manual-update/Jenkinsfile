@@ -35,14 +35,30 @@ pipeline {
     }
     
     stages {
+        stage('Debug Workspace') {
+            steps {
+                container('kaniko') {
+                    sh '''
+                        echo "Current directory:"
+                        pwd
+                        echo "Directory contents:"
+                        ls -la
+                        echo "Workspace contents:"
+                        ls -la $WORKSPACE || true
+                    '''
+                }
+            }
+        }
+        
         stage('Build and Push Images') {
             steps {
                 container('kaniko') {
                     // Build and push frontend
                     sh '''
+                        echo "Building frontend..."
                         /kaniko/executor \
-                        --context="$WORKSPACE/frontend" \
-                        --dockerfile="$WORKSPACE/frontend/Dockerfile" \
+                        --context=$WORKSPACE \
+                        --dockerfile=frontend/Dockerfile \
                         --destination=${DOCKER_REGISTRY}/frontend:${VERSION} \
                         --destination=${DOCKER_REGISTRY}/frontend:latest \
                         --verbosity=debug
@@ -50,9 +66,10 @@ pipeline {
                     
                     // Build and push API
                     sh '''
+                        echo "Building API..."
                         /kaniko/executor \
-                        --context="$WORKSPACE/api" \
-                        --dockerfile="$WORKSPACE/api/Dockerfile" \
+                        --context=$WORKSPACE \
+                        --dockerfile=api/Dockerfile \
                         --destination=${DOCKER_REGISTRY}/api:${VERSION} \
                         --destination=${DOCKER_REGISTRY}/api:latest \
                         --verbosity=debug
@@ -60,9 +77,10 @@ pipeline {
                     
                     // Build and push price service
                     sh '''
+                        echo "Building price service..."
                         /kaniko/executor \
-                        --context="$WORKSPACE/price-service" \
-                        --dockerfile="$WORKSPACE/price-service/Dockerfile" \
+                        --context=$WORKSPACE \
+                        --dockerfile=price-service/Dockerfile \
                         --destination=${DOCKER_REGISTRY}/price-service:${VERSION} \
                         --destination=${DOCKER_REGISTRY}/price-service:latest \
                         --verbosity=debug
@@ -70,9 +88,10 @@ pipeline {
                     
                     // Build and push prediction service
                     sh '''
+                        echo "Building prediction service..."
                         /kaniko/executor \
-                        --context="$WORKSPACE/prediction-service" \
-                        --dockerfile="$WORKSPACE/prediction-service/Dockerfile" \
+                        --context=$WORKSPACE \
+                        --dockerfile=prediction-service/Dockerfile \
                         --destination=${DOCKER_REGISTRY}/prediction-service:${VERSION} \
                         --destination=${DOCKER_REGISTRY}/prediction-service:latest \
                         --verbosity=debug
