@@ -6,137 +6,48 @@ pipeline {
                 kind: Pod
                 spec:
                   containers:
-                  - name: node
-                    image: node:18
+                  - name: kaniko
+                    image: gcr.io/kaniko-project/executor:debug
                     command:
-                    - cat
+                    - /busybox/cat
                     tty: true
-                  - name: docker
-                    image: docker:latest
-                    command:
-                    - cat
-                    tty: true
-                    securityContext:
-                      privileged: true
                     volumeMounts:
-                    - mountPath: /var/run/docker.sock
-                      name: docker-sock
+                    - name: docker-config
+                      mountPath: /kaniko/.docker
                   volumes:
-                  - name: docker-sock
-                    hostPath:
-                      path: /var/run/docker.sock
+                  - name: docker-config
+                    secret:
+                      secretName: docker-config
+                      items:
+                        - key: .dockerconfigjson
+                          path: config.json
             '''
         }
     }
     
     environment {
         DOCKER_REGISTRY = 'registry.digitalocean.com/crypto-dashboard'
-        KUBECONFIG = credentials('do-kubeconfig')
         VERSION = "${BUILD_NUMBER}"
         PROJECT_DIR = 'crypto-dashboard-con-manual-update'
     }
     
     stages {
-        stage('Test') {
+        stage('Build and Push Images') {
             steps {
-                container('node') {
-                    sh '''
-                        # Print current directory for debugging
-                        pwd
-                        ls -la
-                        
-                        # Frontend tests
-                        cd ${WORKSPACE}/${PROJECT_DIR}/frontend
-                        npm install
-                        npm test
-                        
-                        # API tests
-                        cd ${WORKSPACE}/${PROJECT_DIR}/api
-                        npm install
-                        npm test
-                        
-                        # Price service tests
-                        cd ${WORKSPACE}/${PROJECT_DIR}/price-service
-                        npm install
-                        npm test
-                        
-                        # Prediction service tests
-                        cd ${WORKSPACE}/${PROJECT_DIR}/prediction-service
-                        npm install
-                        npm test
-                    '''
+                container('kaniko') {
+                    // Build and push frontend
+                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/frontend --destination ${DOCKER_REGISTRY}/frontend:${VERSION} --destination ${DOCKER_REGISTRY}/frontend:latest"
+                    
+                    // Build and push API
+                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/api --destination ${DOCKER_REGISTRY}/api:${VERSION} --destination ${DOCKER_REGISTRY}/api:latest"
+                    
+                    // Build and push price service
+                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/price-service --destination ${DOCKER_REGISTRY}/price-service:${VERSION} --destination ${DOCKER_REGISTRY}/price-service:latest"
+                    
+                    // Build and push prediction service
+                    sh "/kaniko/executor --context ${WORKSPACE}/${PROJECT_DIR}/prediction-service --destination ${DOCKER_REGISTRY}/prediction-service:${VERSION} --destination ${DOCKER_REGISTRY}/prediction-service:latest"
                 }
             }
-        }
-        
-        stage('Build Docker Images') {
-            steps {
-                container('docker') {
-                    script {
-                        // Build frontend
-                        sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/frontend"
-                        
-                        // Build API
-                        sh "docker build -t ${DOCKER_REGISTRY}/api:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/api"
-                        
-                        // Build price service
-                        sh "docker build -t ${DOCKER_REGISTRY}/price-service:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/price-service"
-                        
-                        // Build prediction service
-                        sh "docker build -t ${DOCKER_REGISTRY}/prediction-service:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/prediction-service"
-                    }
-                }
-            }
-        }
-        
-        stage('Push Docker Images') {
-            steps {
-                container('docker') {
-                    withCredentials([usernamePassword(credentialsId: 'docr-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh '''
-                            docker login registry.digitalocean.com -u $DOCKER_USER -p $DOCKER_PASSWORD
-                            docker push ${DOCKER_REGISTRY}/frontend:${VERSION}
-                            docker push ${DOCKER_REGISTRY}/api:${VERSION}
-                            docker push ${DOCKER_REGISTRY}/price-service:${VERSION}
-                            docker push ${DOCKER_REGISTRY}/prediction-service:${VERSION}
-                        '''
-                    }
-                }
-            }
-        }
-        
-        stage('Update Helm Values') {
-            steps {
-                container('node') {
-                    script {
-                        // Install yq
-                        sh '''
-                            curl -L https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq
-                            chmod +x /usr/local/bin/yq
-                        '''
-                        
-                        sh """
-                            cd ${WORKSPACE}/${PROJECT_DIR}
-                            yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                            yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                            yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                            yq eval '.predictionService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                            
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins"
-                            git add helm/crypto-dashboard/values.yaml
-                            git commit -m "Update image tags to ${VERSION}"
-                            git push origin main
-                        """
-                    }
-                }
-            }
-        }
-    }
-    
-    post {
-        always {
-            sh 'rm -rf ${WORKSPACE}/*'
         }
     }
 } 
