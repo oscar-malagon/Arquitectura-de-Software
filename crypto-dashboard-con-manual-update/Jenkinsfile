@@ -1,8 +1,29 @@
 pipeline {
     agent {
-        docker {
-            image 'node:18'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        kubernetes {
+            yaml '''
+                apiVersion: v1
+                kind: Pod
+                spec:
+                  containers:
+                  - name: node
+                    image: node:18
+                    command:
+                    - cat
+                    tty: true
+                  - name: docker
+                    image: docker:latest
+                    command:
+                    - cat
+                    tty: true
+                    volumeMounts:
+                    - mountPath: /var/run/docker.sock
+                      name: docker-sock
+                  volumes:
+                  - name: docker-sock
+                    hostPath:
+                      path: /var/run/docker.sock
+            '''
         }
     }
     
@@ -13,84 +34,78 @@ pipeline {
     }
     
     stages {
-        stage('Setup') {
-            steps {
-                // Install Docker CLI
-                sh '''
-                    apt-get update
-                    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
-                    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-                    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-                    apt-get update
-                    apt-get install -y docker-ce-cli
-                '''
-            }
-        }
-        
         stage('Test') {
             steps {
-                sh '''
-                    cd frontend && npm install && npm test
-                    cd ../api && npm install && npm test
-                    cd ../price-service && npm install && npm test
-                    cd ../prediction-service && npm install && npm test
-                '''
+                container('node') {
+                    sh '''
+                        cd frontend && npm install && npm test
+                        cd ../api && npm install && npm test
+                        cd ../price-service && npm install && npm test
+                        cd ../prediction-service && npm install && npm test
+                    '''
+                }
             }
         }
         
         stage('Build Docker Images') {
             steps {
-                script {
-                    // Build frontend
-                    sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ./frontend"
-                    
-                    // Build API
-                    sh "docker build -t ${DOCKER_REGISTRY}/api:${VERSION} ./api"
-                    
-                    // Build price service
-                    sh "docker build -t ${DOCKER_REGISTRY}/price-service:${VERSION} ./price-service"
-                    
-                    // Build prediction service
-                    sh "docker build -t ${DOCKER_REGISTRY}/prediction-service:${VERSION} ./prediction-service"
+                container('docker') {
+                    script {
+                        // Build frontend
+                        sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ./frontend"
+                        
+                        // Build API
+                        sh "docker build -t ${DOCKER_REGISTRY}/api:${VERSION} ./api"
+                        
+                        // Build price service
+                        sh "docker build -t ${DOCKER_REGISTRY}/price-service:${VERSION} ./price-service"
+                        
+                        // Build prediction service
+                        sh "docker build -t ${DOCKER_REGISTRY}/prediction-service:${VERSION} ./prediction-service"
+                    }
                 }
             }
         }
         
         stage('Push Docker Images') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docr-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    sh '''
-                        docker login registry.digitalocean.com -u $DOCKER_USER -p $DOCKER_PASSWORD
-                        docker push ${DOCKER_REGISTRY}/frontend:${VERSION}
-                        docker push ${DOCKER_REGISTRY}/api:${VERSION}
-                        docker push ${DOCKER_REGISTRY}/price-service:${VERSION}
-                        docker push ${DOCKER_REGISTRY}/prediction-service:${VERSION}
-                    '''
+                container('docker') {
+                    withCredentials([usernamePassword(credentialsId: 'docr-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh '''
+                            docker login registry.digitalocean.com -u $DOCKER_USER -p $DOCKER_PASSWORD
+                            docker push ${DOCKER_REGISTRY}/frontend:${VERSION}
+                            docker push ${DOCKER_REGISTRY}/api:${VERSION}
+                            docker push ${DOCKER_REGISTRY}/price-service:${VERSION}
+                            docker push ${DOCKER_REGISTRY}/prediction-service:${VERSION}
+                        '''
+                    }
                 }
             }
         }
         
         stage('Update Helm Values') {
             steps {
-                script {
-                    // Install yq
-                    sh '''
-                        curl -L https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq
-                        chmod +x /usr/local/bin/yq
-                    '''
-                    
-                    sh """
-                        yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                        yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                        yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
-                        yq eval '.predictionService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
+                container('node') {
+                    script {
+                        // Install yq
+                        sh '''
+                            curl -L https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq
+                            chmod +x /usr/local/bin/yq
+                        '''
                         
-                        git config user.email "jenkins@example.com"
-                        git config user.name "Jenkins"
-                        git add helm/crypto-dashboard/values.yaml
-                        git commit -m "Update image tags to ${VERSION}"
-                        git push origin main
-                    """
+                        sh """
+                            yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
+                            yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
+                            yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
+                            yq eval '.predictionService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
+                            
+                            git config user.email "jenkins@example.com"
+                            git config user.name "Jenkins"
+                            git add helm/crypto-dashboard/values.yaml
+                            git commit -m "Update image tags to ${VERSION}"
+                            git push origin main
+                        """
+                    }
                 }
             }
         }
