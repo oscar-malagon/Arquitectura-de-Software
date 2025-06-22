@@ -31,6 +31,7 @@ pipeline {
         DOCKER_REGISTRY = 'registry.digitalocean.com/crypto-dashboard'
         KUBECONFIG = credentials('do-kubeconfig')
         VERSION = "${BUILD_NUMBER}"
+        PROJECT_DIR = 'crypto-dashboard-con-manual-update'
     }
     
     stages {
@@ -38,10 +39,29 @@ pipeline {
             steps {
                 container('node') {
                     sh '''
-                        cd frontend && npm install && npm test
-                        cd ../api && npm install && npm test
-                        cd ../price-service && npm install && npm test
-                        cd ../prediction-service && npm install && npm test
+                        # Print current directory for debugging
+                        pwd
+                        ls -la
+                        
+                        # Frontend tests
+                        cd ${WORKSPACE}/${PROJECT_DIR}/frontend
+                        npm install
+                        npm test
+                        
+                        # API tests
+                        cd ${WORKSPACE}/${PROJECT_DIR}/api
+                        npm install
+                        npm test
+                        
+                        # Price service tests
+                        cd ${WORKSPACE}/${PROJECT_DIR}/price-service
+                        npm install
+                        npm test
+                        
+                        # Prediction service tests
+                        cd ${WORKSPACE}/${PROJECT_DIR}/prediction-service
+                        npm install
+                        npm test
                     '''
                 }
             }
@@ -52,16 +72,16 @@ pipeline {
                 container('docker') {
                     script {
                         // Build frontend
-                        sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ./frontend"
+                        sh "docker build -t ${DOCKER_REGISTRY}/frontend:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/frontend"
                         
                         // Build API
-                        sh "docker build -t ${DOCKER_REGISTRY}/api:${VERSION} ./api"
+                        sh "docker build -t ${DOCKER_REGISTRY}/api:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/api"
                         
                         // Build price service
-                        sh "docker build -t ${DOCKER_REGISTRY}/price-service:${VERSION} ./price-service"
+                        sh "docker build -t ${DOCKER_REGISTRY}/price-service:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/price-service"
                         
                         // Build prediction service
-                        sh "docker build -t ${DOCKER_REGISTRY}/prediction-service:${VERSION} ./prediction-service"
+                        sh "docker build -t ${DOCKER_REGISTRY}/prediction-service:${VERSION} ${WORKSPACE}/${PROJECT_DIR}/prediction-service"
                     }
                 }
             }
@@ -94,6 +114,7 @@ pipeline {
                         '''
                         
                         sh """
+                            cd ${WORKSPACE}/${PROJECT_DIR}
                             yq eval '.frontend.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                             yq eval '.api.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
                             yq eval '.priceService.image.tag = "${VERSION}"' -i helm/crypto-dashboard/values.yaml
